@@ -24,7 +24,7 @@ pipeline {
 
         stage('Install') {
             steps {
-                sh 'python3 -m pip install --user -r requirements.txt'
+                sh 'python3 -m pip install --break-system-packages --user -r requirements.txt'
             }
         }
 
@@ -32,6 +32,7 @@ pipeline {
             steps {
                 sh '''
                     python3 -m pytest tests/unit \
+                      --junitxml=test-results.xml \
                       --cov=app \
                       --cov-report=xml:coverage.xml \
                       --cov-report=term-missing
