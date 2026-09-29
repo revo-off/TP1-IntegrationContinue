@@ -23,25 +23,28 @@ POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "sales")
 RUN_INTEGRATION = os.getenv("RUN_INTEGRATION_TESTS", "true").lower() == "true"
 
 
+import socket
+
 def is_kafka_ready() -> bool:
-    """Vérifie si le broker Kafka est joignable."""
+    """Vérifie rapidement si le broker Kafka est joignable via socket TCP."""
     try:
-        consumer = KafkaConsumer(
-            bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-            request_timeout_ms=3000,
-        )
-        consumer.topics()
-        consumer.close()
-        return True
-    except (KafkaError, Exception):
+        parts = KAFKA_BOOTSTRAP_SERVERS.split(",")
+        first_broker = parts[0].strip()
+        host, port = first_broker.split(":")
+        with socket.create_connection((host, int(port)), timeout=2.0):
+            return True
+    except Exception:
         return False
 
 
-# Skip automatique si les tests d'intégration sont désactivés ou Kafka absent
-pytestmark = pytest.mark.skipif(
-    not RUN_INTEGRATION or not is_kafka_ready(),
-    reason="Integration tests disabled or Kafka not available. Start Docker compose.",
-)
+def pytest_collection_modifyitems(config, items):
+    """Skip automatique des tests d'intégration si désactivés ou si Kafka est indisponible."""
+    if not RUN_INTEGRATION or not is_kafka_ready():
+        skip_marker = pytest.mark.skip(
+            reason="Integration tests disabled or Kafka not available. Start Docker compose."
+        )
+        for item in items:
+            item.add_marker(skip_marker)
 
 
 class PostgresHelper:

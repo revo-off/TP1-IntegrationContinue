@@ -3,8 +3,15 @@ pipeline {
 
     environment {
         PYTHON = 'python3'
-        RUN_INTEGRATION_TESTS = 'false'
-        RUN_E2E_TESTS = 'false'
+        KAFKA_BOOTSTRAP_SERVERS = 'kafka:29092'
+        API_BASE_URL = 'http://sales-api:8000'
+        POSTGRES_HOST = 'postgres'
+        POSTGRES_PORT = '5432'
+        POSTGRES_DB = 'sales'
+        POSTGRES_USER = 'sales'
+        POSTGRES_PASSWORD = 'sales'
+        RUN_INTEGRATION_TESTS = 'true'
+        RUN_E2E_TESTS = 'true'
     }
 
     stages {
@@ -42,25 +49,20 @@ pipeline {
 
         stage('Integration Tests') {
             steps {
-                sh '''
-                    echo "TODO: enable integration tests after configuring Kafka."
-                    python3 -m pytest tests/integration
-                '''
+                sh 'python3 -m pytest tests/integration'
             }
         }
 
         stage('Build') {
             steps {
-                sh 'docker compose build sales-api spark-streaming'
+                sh 'docker build -f docker/api/Dockerfile -t sales-api:latest .'
+                sh 'docker build -f docker/spark/Dockerfile -t spark-streaming:latest .'
             }
         }
 
         stage('E2E Tests') {
             steps {
-                sh '''
-                    echo "TODO: students must activate the complete E2E scenario."
-                    python3 -m pytest tests/e2e
-                '''
+                sh 'python3 -m pytest tests/e2e'
             }
         }
 
