@@ -1,0 +1,38 @@
+# Job Spark Structured Streaming exécuté en mode local[*] dans le Pod :
+# évite de déployer master/worker pour ce TP (le driver n'a pas à être joignable
+# par des executors distants).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-streaming
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-streaming
+  template:
+    metadata:
+      labels:
+        app: spark-streaming
+    spec:
+      containers:
+        - name: spark
+          image: sales-spark-streaming:tp3
+          imagePullPolicy: IfNotPresent
+          command:
+            - /opt/spark/bin/spark-submit
+            - --master
+            - local[2]
+            - --packages
+            - org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.7,org.postgresql:postgresql:42.7.3
+            - /opt/spark-app/sales_stream.py
+          envFrom:
+            - configMapRef:
+                name: sales-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: postgres-secret, key: POSTGRES_PASSWORD}
+          resources:
+            requests:
+              memory: 1Gi
